@@ -50,6 +50,8 @@ jobs:
     - name: Getting tools ready 
       run: |
         pip3 install  --break-system-packages twrpdtgen 
+        apt update
+        apt-get install -y cpio
 
     
     - name: Downloading .img file
