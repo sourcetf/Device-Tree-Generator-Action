@@ -49,11 +49,10 @@ jobs:
 
     - name: Getting tools ready 
       run: |
-        pip3 install  --break-system-packages twrpdtgen 
         apt update
         apt-get install -y cpio
+        pip3 install --break-system-packages twrpdtgen
 
-    
     - name: Downloading .img file
       run: |
         wget ${{ github.event.inputs.DEVICE_IMG }}
@@ -68,13 +67,33 @@ jobs:
             echo "vendor_boot.img file found!"
         else
             echo "No Recovery file found!"
-            cd Exit
+            exit 1
         fi
-        
+
+    - name: Patch twrpdtgen to tolerate missing build.prop properties
+      run: |
+        # 修改 sebaubuntu_libs，让缺失属性时不抛异常，返回默认值
+        python3 << 'PYEOF'
+        import re
+        target = "/usr/local/lib/python3.12/dist-packages/sebaubuntu_libs/libandroid/device_info.py"
+        with open(target, "r") as f:
+            content = f.read()
+        old = "raise AssertionError(f'Property {props[0]} could not be found in build.prop')"
+        new = ("return (default if default is not None else "
+               "data_type() if data_type and callable(data_type) else 'unknown')")
+        if old in content:
+            content = content.replace(old, new)
+            with open(target, "w") as f:
+                f.write(content)
+            print("Patched device_info.py successfully")
+        else:
+            print("Patch location not found, file may already be patched or version differs")
+        PYEOF
+
     - name: Generating Device tree
       run: |
-        python3 -m twrpdtgen ./${{ env.RECOVERY_TYPE }}.img 
-        
+        python3 -m twrpdtgen ./${{ env.RECOVERY_TYPE }}.img
+
     - name: Set Build Date 
       run: |
         echo "BUILD_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
