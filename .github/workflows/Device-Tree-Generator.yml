@@ -49,7 +49,7 @@ jobs:
 
     - name: Getting tools ready 
       run: |
-        pip3 install twrpdtgen 
+        pip3 install  --break-system-packages twrpdtgen 
         sudo apt-get install cpio
     
     - name: Downloading .img file
